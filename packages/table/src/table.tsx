@@ -100,6 +100,7 @@ export class Table extends AbstractComponent<TableProps, TableState, TableSnapsh
         numRows: 0,
         renderMode: RenderMode.BATCH_ON_UPDATE,
         rowHeaderCellRenderer: renderDefaultRowHeader,
+        scale: 1,
         selectionModes: SelectionModes.ALL,
     };
 

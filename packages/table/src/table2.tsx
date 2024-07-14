@@ -106,6 +106,7 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
         numRows: 0,
         renderMode: RenderMode.BATCH_ON_UPDATE,
         rowHeaderCellRenderer: renderDefaultRowHeader,
+        scale: 1,
         selectionModes: SelectionModes.ALL,
     };
 
@@ -646,7 +647,10 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
             prevState.rowHeights,
         );
 
+        const didScaleChange = this.props.scale !== prevProps.scale;
+
         const shouldInvalidateGrid =
+            didScaleChange ||
             didChildrenChange ||
             didCellRendererDependenciesChange ||
             didColumnWidthsChange ||
@@ -1565,7 +1569,8 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
         this.locator
             .setGrid(this.grid)
             .setNumFrozenRows(this.state.numFrozenRowsClamped)
-            .setNumFrozenColumns(this.state.numFrozenColumnsClamped);
+            .setNumFrozenColumns(this.state.numFrozenColumnsClamped)
+            .setScale(this.props.scale ?? 1);
     }
 
     private updateViewportRect = (nextViewportRect: Rect | undefined) => {

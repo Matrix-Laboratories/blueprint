@@ -266,6 +266,15 @@ export interface TableProps extends Props, Partial<RowHeights>, Partial<ColumnWi
     rowHeights?: Array<number | null | undefined>;
 
     /**
+     * When set, scales the cursor displacement delta for the purposes of
+     * identifying the correct cursor position with respect to table components
+     * when the table is scaled by an external entity.
+     *
+     * @default 1
+     */
+    scale?: number;
+
+    /**
      * If defined, will set the selected regions in the cells. If defined, this
      * changes table selection to controlled mode, meaning you in charge of
      * setting the selections in response to events in the `onSelection`
@@ -349,6 +358,7 @@ export type TablePropsDefaults = Required<
         | "rowHeaderCellRenderer"
         | "selectionModes"
         | "enableColumnHeader"
+        | "scale"
     >
 >;
 export type TablePropsWithDefaults = Omit<TableProps, keyof TablePropsDefaults> & TablePropsDefaults;

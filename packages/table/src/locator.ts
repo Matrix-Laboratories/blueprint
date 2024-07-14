@@ -68,6 +68,8 @@ export interface Locator {
 
     setNumFrozenColumns(numFrozenColumns: number): this;
 
+    setScale(scale: number): this;
+
     /**
      * @returns whether the rendered rows overflow the visible viewport vertically, helpful for scrolling calculations
      */
@@ -92,6 +94,9 @@ export class LocatorImpl implements Locator {
 
     private numFrozenColumns: number;
 
+    // Used to scale the cursor displacement to accomodate for extra zooming
+    private scale: number;
+
     public constructor(
         /* The root table element within which a click is deemed valid and relevant. */
         private tableElement: HTMLElement,
@@ -102,6 +107,7 @@ export class LocatorImpl implements Locator {
     ) {
         this.numFrozenRows = 0;
         this.numFrozenColumns = 0;
+        this.scale = 1;
     }
 
     // Setters
@@ -119,6 +125,11 @@ export class LocatorImpl implements Locator {
 
     public setNumFrozenColumns(numFrozenColumns: number) {
         this.numFrozenColumns = numFrozenColumns;
+        return this;
+    }
+
+    public setScale(scale: number) {
+        this.scale = scale;
         return this;
     }
 
@@ -217,10 +228,10 @@ export class LocatorImpl implements Locator {
 
     public convertPointToColumn(clientX: number, useMidpoint?: boolean): number {
         const tableRect = this.getTableRect();
-        if (this.grid === undefined || !tableRect.containsX(clientX)) {
+        if (this.grid === undefined || !tableRect.containsX(clientX * this.scale)) {
             return -1;
         }
-        const gridX = this.toGridX(clientX);
+        const gridX = this.toGridX(clientX) * this.scale;
         const limit = useMidpoint ? this.grid.numCols : this.grid.numCols - 1;
         const lookupFn = useMidpoint ? this.convertCellMidpointToClientX : this.convertCellIndexToClientX;
         return Utils.binarySearch(gridX, limit, lookupFn);
@@ -228,18 +239,18 @@ export class LocatorImpl implements Locator {
 
     public convertPointToRow(clientY: number, useMidpoint?: boolean): number {
         const tableRect = this.getTableRect();
-        if (this.grid === undefined || !tableRect.containsY(clientY)) {
+        if (this.grid === undefined || !tableRect.containsY(clientY * this.scale)) {
             return -1;
         }
-        const gridY = this.toGridY(clientY);
+        const gridY = this.toGridY(clientY) * this.scale;
         const limit = useMidpoint ? this.grid.numRows : this.grid.numRows - 1;
         const lookupFn = useMidpoint ? this.convertCellMidpointToClientY : this.convertCellIndexToClientY;
         return Utils.binarySearch(gridY, limit, lookupFn);
     }
 
     public convertPointToCell(clientX: number, clientY: number) {
-        const gridX = this.toGridX(clientX);
-        const gridY = this.toGridY(clientY);
+        const gridX = this.toGridX(clientX) * this.scale;
+        const gridY = this.toGridY(clientY) * this.scale;
         const col = Utils.binarySearch(gridX, this.grid!.numCols - 1, this.convertCellIndexToClientX);
         const row = Utils.binarySearch(gridY, this.grid!.numRows - 1, this.convertCellIndexToClientY);
         return { col, row };
