@@ -231,7 +231,7 @@ export class LocatorImpl implements Locator {
         if (this.grid === undefined || !tableRect.containsX(clientX * this.scale)) {
             return -1;
         }
-        const gridX = this.toGridX(clientX) * this.scale;
+        const gridX = this.toGridX(clientX * this.scale);
         const limit = useMidpoint ? this.grid.numCols : this.grid.numCols - 1;
         const lookupFn = useMidpoint ? this.convertCellMidpointToClientX : this.convertCellIndexToClientX;
         return Utils.binarySearch(gridX, limit, lookupFn);
@@ -242,15 +242,15 @@ export class LocatorImpl implements Locator {
         if (this.grid === undefined || !tableRect.containsY(clientY * this.scale)) {
             return -1;
         }
-        const gridY = this.toGridY(clientY) * this.scale;
+        const gridY = this.toGridY(clientY * this.scale);
         const limit = useMidpoint ? this.grid.numRows : this.grid.numRows - 1;
         const lookupFn = useMidpoint ? this.convertCellMidpointToClientY : this.convertCellIndexToClientY;
         return Utils.binarySearch(gridY, limit, lookupFn);
     }
 
     public convertPointToCell(clientX: number, clientY: number) {
-        const gridX = this.toGridX(clientX) * this.scale;
-        const gridY = this.toGridY(clientY) * this.scale;
+        const gridX = this.toGridX(clientX * this.scale);
+        const gridY = this.toGridY(clientY * this.scale);
         const col = Utils.binarySearch(gridX, this.grid!.numCols - 1, this.convertCellIndexToClientX);
         const row = Utils.binarySearch(gridY, this.grid!.numRows - 1, this.convertCellIndexToClientY);
         return { col, row };
