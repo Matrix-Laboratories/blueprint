@@ -75,11 +75,6 @@ export interface PopoverProps<TProps extends DefaultPopoverTargetHTMLProps = Def
     backdropProps?: React.HTMLProps<HTMLDivElement>;
 
     /**
-     * The content displayed inside the popover.
-     */
-    content?: string | React.JSX.Element;
-
-    /**
      * The kind of interaction that triggers the display of the popover.
      *
      * @default "click"
@@ -300,7 +295,7 @@ export class Popover<
         }
     }
 
-    protected validateProps(props: PopoverProps<T> & { children?: React.ReactNode }) {
+    protected validateProps(props: PopoverProps<T>) {
         if (props.isOpen == null && props.onInteraction != null) {
             console.warn(Errors.POPOVER_WARN_UNCONTROLLED_ONINTERACTION);
         }
@@ -389,7 +384,7 @@ export class Popover<
             ...targetEventHandlers,
         } satisfies React.HTMLProps<HTMLElement>;
         const childTargetProps = {
-            "aria-expanded": isOpen,
+            "aria-expanded": isHoverInteractionKind ? undefined : isOpen,
             "aria-haspopup":
                 this.props.interactionKind === PopoverInteractionKind.HOVER_TARGET_ONLY
                     ? undefined
@@ -417,7 +412,7 @@ export class Popover<
                 tabIndex: targetTabIndex,
             });
         } else {
-            const childTarget = Utils.ensureElement(React.Children.toArray(children)[0])!;
+            const childTarget = Utils.ensureElement(React.Children.toArray(children)[0]);
 
             if (childTarget === undefined) {
                 return null;
@@ -791,7 +786,7 @@ export class Popover<
 
     private getIsContentEmpty() {
         const { content } = this.props;
-        return content == null || (typeof content === "string" && content.trim() === "");
+        return content == null || Utils.isEmptyString(content);
     }
 }
 

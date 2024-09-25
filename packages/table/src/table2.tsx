@@ -37,6 +37,7 @@ import * as ScrollUtils from "./common/internal/scrollUtils";
 import { Rect } from "./common/rect";
 import { RenderMode } from "./common/renderMode";
 import { ScrollDirection } from "./common/scrollDirection";
+import type { TableHeaderDimensions } from "./common/TableHeaderDimensions";
 import { Utils } from "./common/utils";
 import { ColumnHeader } from "./headers/columnHeader";
 import { ColumnHeaderCell, type ColumnHeaderCellProps } from "./headers/columnHeaderCell";
@@ -232,7 +233,6 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
     private refHandlers = {
         cellContainer: (ref: HTMLElement | null) => (this.cellContainerElement = ref),
         columnHeader: (ref: HTMLElement | null) => {
-            this.columnHeaderElement = ref;
             if (ref != null) {
                 this.columnHeaderHeight = Math.max(ref.clientHeight, Grid.MIN_COLUMN_HEADER_HEIGHT);
             }
@@ -240,7 +240,6 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
         quadrantStack: (ref: TableQuadrantStack) => (this.quadrantStackInstance = ref),
         rootTable: (ref: HTMLElement | null) => (this.rootTableElement = ref),
         rowHeader: (ref: HTMLElement | null) => {
-            this.rowHeaderElement = ref;
             if (ref != null) {
                 this.rowHeaderWidth = ref.clientWidth;
             }
@@ -250,15 +249,11 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
 
     private cellContainerElement?: HTMLElement | null;
 
-    private columnHeaderElement?: HTMLElement | null;
-
     private columnHeaderHeight = Grid.MIN_COLUMN_HEADER_HEIGHT;
 
     private quadrantStackInstance?: TableQuadrantStack;
 
     private rootTableElement?: HTMLElement | null;
-
-    private rowHeaderElement?: HTMLElement | null;
 
     private rowHeaderWidth = Grid.MIN_ROW_HEADER_WIDTH;
 
@@ -329,6 +324,7 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
 
         this.hotkeysImpl = new TableHotkeys(props, this.state, {
             getEnabledSelectionHandler: this.getEnabledSelectionHandler,
+            getHeaderDimensions: this.getHeaderDimensions,
             handleFocus: this.handleFocus,
             handleSelection: this.handleSelection,
             syncViewportPosition: this.syncViewportPosition,
@@ -730,7 +726,7 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
     // =============
 
     private shouldDisableVerticalScroll() {
-        const { enableColumnHeader, enableGhostCells } = this.props;
+        const { enableGhostCells } = this.props;
         const { viewportRect } = this.state;
 
         if (this.grid === null || viewportRect === undefined) {
@@ -738,7 +734,7 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
         }
 
         const rowIndices = this.grid.getRowIndicesInRect({
-            columnHeaderHeight: enableColumnHeader ? this.columnHeaderHeight : 0,
+            columnHeaderHeight: this.getColumnHeaderHeight(),
             includeGhostCells: enableGhostCells!,
             rect: viewportRect,
         });
@@ -874,7 +870,6 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
             enableGhostCells,
             enableColumnReordering,
             enableColumnResizing,
-            enableRowHeader,
             loadingOptions,
             maxColumnWidth,
             minColumnWidth,
@@ -897,7 +892,7 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
         // if we have horizontal overflow or exact fit, no need to render ghost columns
         // (this avoids problems like https://github.com/palantir/blueprint/issues/5027)
         const hasHorizontalOverflowOrExactFit = this.locator.hasHorizontalOverflowOrExactFit(
-            enableRowHeader ? this.rowHeaderWidth : 0,
+            this.getRowHeaderWidth(),
             viewportRect,
         );
         const columnIndices = this.grid.getColumnIndicesInRect(
@@ -952,7 +947,6 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
         const { focusedCell, selectedRegions, viewportRect } = this.state;
         const {
             defaultRowHeight,
-            enableColumnHeader,
             enableMultipleSelection,
             enableGhostCells,
             enableRowReordering,
@@ -980,7 +974,7 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
         // if we have vertical overflow or exact fit, no need to render ghost rows
         // (this avoids problems like https://github.com/palantir/blueprint/issues/5027)
         const hasVerticalOverflowOrExactFit = this.locator.hasVerticalOverflowOrExactFit(
-            enableColumnHeader ? this.columnHeaderHeight : 0,
+            this.getColumnHeaderHeight(),
             viewportRect,
         );
         const rowIndices = this.grid.getRowIndicesInRect({
@@ -1064,7 +1058,6 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
             enableMultipleSelection,
             enableColumnHeader,
             enableGhostCells,
-            enableRowHeader,
             loadingOptions,
             bodyContextMenuRenderer,
             selectedRegionTransform,
@@ -1081,7 +1074,7 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
             viewportRect,
         );
         const hasHorizontalOverflowOrExactFit = this.locator.hasHorizontalOverflowOrExactFit(
-            enableRowHeader ? this.rowHeaderWidth : 0,
+            this.getRowHeaderWidth(),
             viewportRect,
         );
         const rowIndices = this.grid.getRowIndicesInRect({
@@ -1482,30 +1475,21 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
     private syncViewportPosition = ({ nextScrollLeft, nextScrollTop }: TableSnapshot) => {
         const { viewportRect } = this.state;
 
-        if (this.scrollContainerElement == null || this.columnHeaderElement == null || viewportRect === undefined) {
+        if (this.scrollContainerElement == null || viewportRect === undefined) {
             return;
         }
 
         if (nextScrollLeft !== undefined || nextScrollTop !== undefined) {
-            // we need to modify the scroll container explicitly for the viewport to shift. in so
-            // doing, we add the size of the header elements, which are not technically part of the
-            // "grid" concept (the grid only consists of body cells at present).
             if (nextScrollTop !== undefined) {
-                const topCorrection = this.shouldDisableVerticalScroll() ? 0 : this.columnHeaderElement.clientHeight;
-                this.scrollContainerElement.scrollTop = nextScrollTop + topCorrection;
+                this.scrollContainerElement.scrollTop = nextScrollTop;
             }
             if (nextScrollLeft !== undefined) {
-                const leftCorrection =
-                    this.shouldDisableHorizontalScroll() || this.rowHeaderElement == null
-                        ? 0
-                        : this.rowHeaderElement.clientWidth;
-
-                this.scrollContainerElement.scrollLeft = nextScrollLeft + leftCorrection;
+                this.scrollContainerElement.scrollLeft = nextScrollLeft;
             }
 
             const nextViewportRect = new Rect(
-                nextScrollLeft ?? 0,
-                nextScrollTop ?? 0,
+                nextScrollLeft ?? viewportRect.left,
+                nextScrollTop ?? viewportRect.top,
                 viewportRect.width,
                 viewportRect.height,
             );
@@ -1628,5 +1612,20 @@ export class Table2 extends AbstractComponent<Table2Props, TableState, TableSnap
 
     private handleRowResizeGuide = (horizontalGuides: number[]) => {
         this.setState({ horizontalGuides });
+    };
+
+    private getHeaderDimensions = (): TableHeaderDimensions => {
+        return {
+            columnHeaderHeight: this.getColumnHeaderHeight(),
+            rowHeaderWidth: this.getRowHeaderWidth(),
+        };
+    };
+
+    private getColumnHeaderHeight = (): number => {
+        return this.props.enableColumnHeader ? this.columnHeaderHeight : 0;
+    };
+
+    private getRowHeaderWidth = (): number => {
+        return this.props.enableRowHeader ? this.rowHeaderWidth : 0;
     };
 }

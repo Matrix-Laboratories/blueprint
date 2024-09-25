@@ -81,7 +81,7 @@ describe("<Popover>", () => {
             assert.isTrue(warnSpy.calledWith(Errors.POPOVER_WARN_TOO_MANY_CHILDREN));
         });
 
-        it("warns if given children and target prop", () => {
+        it("warns if given children and renderTarget prop", () => {
             shallow(<Popover renderTarget={() => <span>"boom"</span>}>pow</Popover>);
             assert.isTrue(warnSpy.calledWith(Errors.POPOVER_WARN_DOUBLE_TARGET));
         });
@@ -255,8 +255,8 @@ describe("<Popover>", () => {
         it("moves focus to overlay when opened", done => {
             function handleOpened() {
                 assert.notEqual(document.activeElement, document.body, "body element should not have focus");
-                assert.isTrue(
-                    document.activeElement?.closest(`.${Classes.OVERLAY}`) !== null,
+                assert.isNotNull(
+                    document.activeElement?.closest(`.${Classes.OVERLAY}`),
                     "focus should be inside overlay",
                 );
                 done();
@@ -271,10 +271,7 @@ describe("<Popover>", () => {
             function handleClosed(wrapper2: PopoverWrapper) {
                 wrapper2.assertIsOpen(false);
                 assert.notEqual(document.activeElement, document.body, "body element should not have focus");
-                assert.isTrue(
-                    document.activeElement?.closest(`.${targetClassName}`) != null,
-                    "focus should be on target",
-                );
+                assert.isNotNull(document.activeElement?.closest(`.${targetClassName}`), "focus should be on target");
             }
 
             wrapper = renderPopover(commonProps);
@@ -888,7 +885,7 @@ describe("<Popover>", () => {
             it("when autoFocus={true}", done => {
                 wrapper = renderPopover({ autoFocus: true });
                 const button = wrapper.find(BUTTON_ID_SELECTOR).hostNodes();
-                (button.getDOMNode() as HTMLElement).focus();
+                button.getDOMNode<HTMLElement>().focus();
                 button.simulate("keyDown", SPACE_KEYSTROKE);
                 // Wait for focus to change
                 wrapper.then(wrap => {
@@ -905,7 +902,7 @@ describe("<Popover>", () => {
             it("when autoFocus={false}", done => {
                 wrapper = renderPopover({ autoFocus: false });
                 const button = wrapper.find(BUTTON_ID_SELECTOR).hostNodes();
-                (button.getDOMNode() as HTMLElement).focus();
+                button.getDOMNode<HTMLElement>().focus();
                 button.simulate("keyDown", SPACE_KEYSTROKE);
 
                 // Wait for focus to change (it shouldn't)
